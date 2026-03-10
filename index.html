@@ -271,13 +271,24 @@
                 </div>
                 
                 <!-- Hide Front Half -->
-                <div>
+                <div class="mb-4">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-medium">Hide Front Half</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="hide-front-half" class="sr-only peer">
                             <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-500"></div>
                         </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Info -->
+            <div class="p-4">
+                <h3 class="text-md font-medium mb-3">Performance</h3>
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>FPS</span>
+                        <span id="fps-value">60</span>
                     </div>
                 </div>
             </div>
@@ -300,6 +311,10 @@
         let mediaStream = null;
         let streamSource = null;
         let isLiveSource = false;
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let lastFPSUpdate = 0;
+        let lastFrequencyUpdate = 0;
 
         function init() {
             initThreeJS();
@@ -383,6 +398,7 @@
 
         function animate() {
             animationFrameId = requestAnimationFrame(animate);
+            const now = performance.now();
             
             if (sphereGroup) {
                 sphereGroup.rotation.x += 0.003 * rotationSpeed * rotationDirection;
@@ -390,7 +406,10 @@
             }
             
             if ((isPlaying || isLiveSource) && analyser) {
-                analyser.getByteFrequencyData(dataArray);
+                if (now - lastFrequencyUpdate >= 50) {
+                    analyser.getByteFrequencyData(dataArray);
+                    lastFrequencyUpdate = now;
+                }
                 
                 const sphereCenter = new THREE.Vector3();
                 sphereGroup.getWorldPosition(sphereCenter);
@@ -452,6 +471,14 @@
             }
             
             renderer.render(scene, camera);
+            
+            frameCount++;
+            if (now - lastFPSUpdate >= 1000) {
+                const fps = Math.round((frameCount * 1000) / (now - lastFPSUpdate));
+                document.getElementById('fps-value').textContent = fps;
+                frameCount = 0;
+                lastFPSUpdate = now;
+            }
         }
 
         function onWindowResize() {
